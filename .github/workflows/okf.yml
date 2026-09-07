@@ -2,6 +2,7 @@ name: okf
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -21,7 +22,8 @@ jobs:
       - name: Check index freshness
         run: |
           okf index .
-          if ! git diff --exit-code; then
-            echo "index.md files are stale. Run 'okf index .' and commit the result." >&2
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "index.md files are stale or missing. Run 'okf index .' and commit the result." >&2
+            git status --porcelain >&2
             exit 1
           fi
