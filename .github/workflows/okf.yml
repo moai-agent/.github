@@ -5,25 +5,71 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: okf-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OKF_VERSION: v0.5.0
+
 jobs:
   okf:
     name: okf
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
       - uses: actions/setup-go@v5
         with:
           go-version: '1.27.x'
-      - run: go install github.com/okfcli/okf/cmd/okf@v0.5.0
+          cache: false
+
+      - name: Install okf
+        run: |
+          set -euo pipefail
+          go install "github.com/okfcli/okf/cmd/okf@${OKF_VERSION}"
+
+      - name: Assert pinned okf version
+        run: |
+          set -euo pipefail
+          got=$(okf version | jq -r .version)
+          want="${OKF_VERSION#v}"
+          if [ "$got" != "$want" ]; then
+            echo "::error::okf version drift: installed $got, pinned $want"
+            exit 1
+          fi
+          echo "okf $got"
+
       - name: Validate OKF bundle
-        run: okf validate .
-      - name: Lint OKF bundle
-        run: okf lint .
+        run: |
+          set -euo pipefail
+          okf validate . | jq .
+
+      - name: Lint OKF bundle (strict - any finding fails)
+        run: |
+          set -euo pipefail
+          out=$(okf lint .)
+          echo "$out" | jq .
+          count=$(echo "$out" | jq '.findings | length')
+          if [ "$count" -ne 0 ]; then
+            echo "$out" | jq -r '.findings[] | "::error::\(.severity) \(.concept_id): \(.message) [\(.rule)]"'
+            echo "::error::okf lint reported $count finding(s); strict mode fails the build"
+            exit 1
+          fi
+
       - name: Check index freshness
         run: |
-          okf index .
+          set -euo pipefail
+          okf index . | jq .
           if [ -n "$(git status --porcelain)" ]; then
-            echo "index.md files are stale or missing. Run 'okf index .' and commit the result." >&2
-            git status --porcelain >&2
+            echo "::error::index.md files are stale or missing. Run 'okf index .' and commit the result."
+            git status --porcelain
+            git --no-pager diff
             exit 1
           fi
