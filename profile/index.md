@@ -6,5 +6,5 @@ Directory: `profile/`
 
 | Title | Type | Description |
 |-------|------|-------------|
-| [README](README.md) | Profile |  |
+| [moai-agent](README.md) | Profile | Public organization profile for moai-agent. |
 
