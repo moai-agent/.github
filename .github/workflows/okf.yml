@@ -1,0 +1,27 @@
+name: okf
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  okf:
+    name: okf
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.x'
+      - run: go install github.com/okfcli/okf/cmd/okf@v0.5.0
+      - name: Validate OKF bundle
+        run: okf validate .
+      - name: Lint OKF bundle
+        run: okf lint .
+      - name: Check index freshness
+        run: |
+          okf index .
+          if ! git diff --exit-code; then
+            echo "index.md files are stale. Run 'okf index .' and commit the result." >&2
+            exit 1
+          fi
