@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.27.x'
           cache: false
@@ -38,13 +38,14 @@ jobs:
       - name: Assert pinned okf version
         run: |
           set -euo pipefail
-          got=$(okf version | jq -r .version)
-          want="${OKF_VERSION#v}"
-          if [ "$got" != "$want" ]; then
-            echo "::error::okf version drift: installed $got, pinned $want"
+          # okf self-reports "dev" when built by `go install` (no goreleaser
+          # ldflags), so assert the module version embedded in the binary.
+          got=$(go version -m "$(command -v okf)" | awk '$1=="mod"{print $3; exit}')
+          if [ "$got" != "${OKF_VERSION}" ]; then
+            echo "::error::okf version drift: installed $got, pinned ${OKF_VERSION}"
             exit 1
           fi
-          echo "okf $got"
+          echo "okf ${got}"
 
       - name: Validate OKF bundle
         run: |
