@@ -1,0 +1,69 @@
+name: okf
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/okf.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '.github/workflows/okf.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: okf-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OKF_VERSION: v0.5.0
+
+jobs:
+  okf:
+    name: okf
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.x'
+          cache: false
+
+      - name: Install okf
+        run: |
+          set -euo pipefail
+          go install "github.com/okfcli/okf/cmd/okf@${OKF_VERSION}"
+
+      - name: Assert pinned okf version
+        run: |
+          set -euo pipefail
+          got=$(go version -m "$(command -v okf)" | awk '$1=="mod"{print $3; exit}')
+          if [ "$got" != "${OKF_VERSION}" ]; then
+            echo "::error::okf version drift: installed $got, pinned ${OKF_VERSION}"
+            exit 1
+          fi
+          echo "okf ${got}"
+
+      - name: Validate OKF documentation
+        run: |
+          set -euo pipefail
+          okf validate docs | jq .
+
+      - name: Lint OKF documentation (strict)
+        run: |
+          set -euo pipefail
+          out=$(okf lint docs)
+          echo "$out" | jq .
+          count=$(echo "$out" | jq '.findings | length')
+          if [ "$count" -ne 0 ]; then
+            echo "$out" | jq -r '.findings[] | "::error::\(.severity) \(.concept_id): \(.message) [\(.rule)]"'
+            echo "::error::okf lint reported $count finding(s); strict mode fails the build"
+            exit 1
+          fi
