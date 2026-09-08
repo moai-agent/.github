@@ -1,9 +1,9 @@
 ---
 id: https://github.com/moai-agent/.github
 type: Reference
-title: moai-agent
-description: Organization-level GitHub configuration for moai-agent.
-tags: [moai, github, org-config]
+title: MoAI Agent Organization Profile
+description: Enables a GitHub organization to customize its landing page with a profile README that showcases its mission, featured projects, and community links.
+tags: [github]
 ---
 
 🗿 hello.
