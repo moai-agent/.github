@@ -1,17 +1,4 @@
 🗿 hello.
 
-## Who we are
-
-Open source maintainers and users of agents.
-
-## Why we exist
-
-We help Experts keep up with the best agentic patterns.
-
-## What we do
-
-We provide a model for maintaining agentic agility, safety and security.
-
-## How we do it
-
-We build context engineering patterns that assemble and clarify agentic domain expertise.
+ahu is a tool built to help users orchestrate work cross harness and model while providing some common interfaces for tracking agents, skills and evals.
+ahu is experimental, and maintained by a single dev, as a passion project.

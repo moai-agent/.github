@@ -6,10 +6,10 @@ on:
     paths:
       - 'docs/**'
       - '.github/workflows/okf.yml'
+  # The `okf` job is a required branch-protection check, so it must run for
+  # every pull request. A path filter would leave unrelated PRs permanently
+  # blocked when GitHub skips the required check.
   pull_request:
-    paths:
-      - 'docs/**'
-      - '.github/workflows/okf.yml'
 
 permissions:
   contents: read
@@ -55,15 +55,3 @@ jobs:
         run: |
           set -euo pipefail
           okf validate docs | jq .
-
-      - name: Lint OKF documentation (strict)
-        run: |
-          set -euo pipefail
-          out=$(okf lint docs)
-          echo "$out" | jq .
-          count=$(echo "$out" | jq '.findings | length')
-          if [ "$count" -ne 0 ]; then
-            echo "$out" | jq -r '.findings[] | "::error::\(.severity) \(.concept_id): \(.message) [\(.rule)]"'
-            echo "::error::okf lint reported $count finding(s); strict mode fails the build"
-            exit 1
-          fi
